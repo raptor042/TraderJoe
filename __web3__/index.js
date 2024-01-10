@@ -1,4 +1,4 @@
-import { PANCAKESWAP_ROUTER02_TESTNET, PAIR_ABI, PANCAKESWAP_ROUTER02_ABI, FACTORY_ABI, PANCAKESWAP_FACTORY_TESTNET } from "./config.js"
+import { PANCAKESWAP_ROUTER02_TESTNET, PAIR_ABI, PANCAKESWAP_ROUTER02_ABI, FACTORY_ABI, PANCAKESWAP_FACTORY_TESTNET, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_FACTORY_MAINNET } from "./config.js"
 import { getProvider, getSigner } from "./init.js"
 import { ethers } from "ethers"
 
@@ -14,6 +14,39 @@ export const getTimestamp = async () => {
     console.log(block)
 
     return block.timestamp
+}
+
+export const name = async (address) => {
+    const token = new ethers.Contract(
+        address,
+        PAIR_ABI.abi,
+        getProvider()
+    )
+    console.log(await token.name())
+
+    return await token.name()
+}
+
+export const symbol = async (address) => {
+    const token = new ethers.Contract(
+        address,
+        PAIR_ABI.abi,
+        getProvider()
+    )
+    console.log(await token.symbol())
+
+    return await token.symbol()
+}
+
+export const WETH = async () => {
+    const router = new ethers.Contract(
+        PANCAKESWAP_ROUTER02_MAINNET,
+        PANCAKESWAP_ROUTER02_ABI,
+        getProvider()
+    )
+    const weth = await router.WETH()
+
+    return weth
 }
 
 export const decimalFormatting = async (ca, amount) => {
@@ -59,36 +92,18 @@ export const approveSwap = async (ca, phrase, spender, amount) => {
             ethers.parseEther(`${amount}`)
         )
         console.log(approve)
+
+        token.on("Approval", (owner, spender, value, e) => {
+            console.log(`An owner - ${owner} has allowed a spender - ${spender} to spend ${Number(ethers.formatEther(value))} of the tokens.`)
+        })
     } catch (err) {
         console.log(err)
     }
 }
 
-export const name = async (address) => {
-    const token = new ethers.Contract(
-        address,
-        PAIR_ABI.abi,
-        getProvider()
-    )
-    console.log(await token.name())
-
-    return await token.name()
-}
-
-export const symbol = async (address) => {
-    const token = new ethers.Contract(
-        address,
-        PAIR_ABI.abi,
-        getProvider()
-    )
-    console.log(await token.symbol())
-
-    return await token.symbol()
-}
-
 export const getPair = async (token1, flag) => {
     const router = new ethers.Contract(
-        PANCAKESWAP_ROUTER02_TESTNET,
+        PANCAKESWAP_ROUTER02_MAINNET,
         PANCAKESWAP_ROUTER02_ABI,
         getProvider()
     )
@@ -96,7 +111,7 @@ export const getPair = async (token1, flag) => {
     console.log(token0)
 
     const factory = new ethers.Contract(
-        PANCAKESWAP_FACTORY_TESTNET,
+        PANCAKESWAP_FACTORY_MAINNET,
         FACTORY_ABI.abi,
         getProvider()
     )
@@ -108,7 +123,7 @@ export const getPair = async (token1, flag) => {
 
 export const getAmountsOut = async (amount, address) => {
     const router = new ethers.Contract(
-        PANCAKESWAP_ROUTER02_TESTNET,
+        PANCAKESWAP_ROUTER02_MAINNET,
         PANCAKESWAP_ROUTER02_ABI,
         getProvider()
     )
@@ -124,7 +139,7 @@ export const getAmountsOut = async (amount, address) => {
 
 export const buyToken = async (phrase, address, amount, to) => {
     const router = new ethers.Contract(
-        PANCAKESWAP_ROUTER02_TESTNET,
+        PANCAKESWAP_ROUTER02_MAINNET,
         PANCAKESWAP_ROUTER02_ABI,
         getSigner(phrase)
     )
@@ -141,36 +156,28 @@ export const buyToken = async (phrase, address, amount, to) => {
             value : ethers.parseEther(`${amount}`)
         }
     )
-    console.log(swap)
+    console.log("buy", swap)
 }
 
 export const sellToken = async (phrase, address, amount, to) => {
     const router = new ethers.Contract(
-        PANCAKESWAP_ROUTER02_TESTNET,
+        PANCAKESWAP_ROUTER02_MAINNET,
         PANCAKESWAP_ROUTER02_ABI,
         getSigner(phrase)
     )
     const timestamp = await getTimestamp()
     const time = timestamp + 10000
-    const _amount = Number(amount) * 99.9
-    console.log(await router.WETH(), time, timestamp, amount, _amount, address, to)
+    console.log(await router.WETH(), time, timestamp, amount, address, to)
 
     try {
-        await approveSwap(
-            address,
-            phrase,
-            PANCAKESWAP_ROUTER02_TESTNET,
-            amount
-        )
-
         const swap = await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            ethers.parseEther(`${_amount}`),
+            ethers.parseEther(`${amount}`),
             ethers.parseEther("0"),
             [address, await router.WETH()],
             to,
             time
         )
-        console.log(swap)
+        console.log("sell", swap)
     } catch (err) {
         console.log(err)
     }

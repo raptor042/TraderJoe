@@ -9,7 +9,8 @@ const UserSchema = new Schema({
         {
             address : String,
             tokenId : String,
-            amount : { type : Number },
+            buy_amount : Number,
+            amount : Number,
             entry : { type : Number, default : 0 },
             tp : { type : Number, default : 0 },
             sl : { type : Number, default : 0 },
@@ -17,7 +18,7 @@ const UserSchema = new Schema({
             loss : { type : Number, default : 0 },
             Xs : { type : Number, default : 0 },
             flag : { type : String, enum : ["Bought", "Sold", "Pending Buy", "Pending Sell"] },
-            timestamp : { type : String, enum : ["Present", "Past"] }
+            timestamp : Number
         }
     ],
     buy_limit : Number,
@@ -30,18 +31,19 @@ const UserSchema = new Schema({
 const BuyQueueSchema = new Schema({
     userId : { type : Number, required : true },
     token : { type : String, required : true },
-    tokenId : { type : Number, required : true },
-    amount : { type : Number, required : true },
-    entries : { type : Number, required : true }
+    tokenId : { type : String, required : true },
+    buy_amount : { type : Number, required : true },
+    retries : { type : Number, required : true }
 })
 
 const SellQueueSchema = new Schema({
     userId : { type : Number, required : true },
     token : { type : String, required : true },
-    tokenId : { type : Number, required : true },
+    tokenId : { type : String, required : true },
+    buy_amount : { type : Number, required : true },
     amount : { type : Number, required : true },
     entry : { type : Number, required : true },
-    entries : { type : Number, required : true },
+    retries : { type : Number, required : true },
     timestamp : { type : Number, required : true }
 })
 
