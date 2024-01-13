@@ -240,10 +240,12 @@ bot.command("daily_report", async ctx => {
 connectDB()
 
 setInterval(() => {
-    runBuyQueue()
+    runSellQueue()
 
-    setTimeout(runSellQueue, 1000*60)
-}, 1000*60);
+    setTimeout(() => {
+        runBuyQueue()
+    }, 1000*60*5)
+}, 1000*60*10);
 
 setInterval(() => {
     resetBuyLimit()
