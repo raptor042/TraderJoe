@@ -1,11 +1,11 @@
 import { Telegraf, Markup } from "telegraf"
 import { config } from "dotenv"
-import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists } from "./utils/index.js"
+import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairLiquidity } from "./utils/index.js"
 import { addToBuyQueue, addToSellQueue, addUser, connectDB, getUser, updateUserBuyLimit, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
-import { approveSwap, buyToken, createWallet, decimalFormatting, getPair, getTimestamp, name } from "./__web3__/index.js"
+import { WETH, approveSwap, buyToken, createWallet, decimalFormatting, getPair, getTimestamp, name } from "./__web3__/index.js"
 import { ethers } from "ethers"
 import { getProvider } from "./__web3__/init.js"
-import { PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "./__web3__/config.js"
+import { FACTORY_ABI, PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_FACTORY_TESTNET, PANCAKESWAP_ROUTER02_ABI, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "./__web3__/config.js"
 
 config()
 
@@ -69,11 +69,11 @@ bot.command("buy", async ctx => {
     try {
         if (ctx.message.chat.type == "private") {
             const user_exists = await userExists(ctx.message.from.id)
+            const user = await getUser(ctx.message.from.id)
+            console.log(user)
 
             if(user_exists) {
                 const args = ctx.args
-                const user = await getUser(ctx.message.from.id)
-                console.log(user)
 
                 if(args.length == 2) {
                     const provider = getProvider()
@@ -81,63 +81,22 @@ bot.command("buy", async ctx => {
                     const balance = ethers.formatEther(_balance)
                     console.log(balance, provider)
 
-                    const timestamp = await getTimestamp()
-
                     if(Number(balance) >= args[1] && user.daily_limit > 0) {
-                        const _name = await name(args[0])
                         const ID = await getID(args[0])
+                        await watchPairLiquidity(
+                            ctx.message.from.id,
+                            ID,
+                            args[0],
+                            args[1]
+                        )
+                        console.log(args)
 
-                        try {
-                            await buyToken(
-                                user.wallet_sk,
-                                args[0],
-                                args[1],
-                                user.wallet_pk
-                            )
-
-                            const token = new ethers.Contract(
-                                args[0],
-                                PAIR_ERC20_ABI.abi,
-                                getProvider()
-                            )
-
-                            token.on("Transfer", async (from, to, value, e) => {
-                                if(to == user.wallet_pk) {
-                                    console.log(from, to, value)
-                                    const amount = await decimalFormatting(args[0], value)
-                                    const entry = amount / args[1]
-                                    console.log(entry, amount)
-
-                                    await approveSwap(
-                                        args[0],
-                                        user.wallet_sk,
-                                        PANCAKESWAP_ROUTER02_TESTNET,
-                                        amount
-                                    )
-
-                                    await updateUserTokens(ctx.message.from.id, ID, args[0], args[1], amount, entry, "Bought", timestamp)
-
-                                    await updateUserDailyLimit(ctx.message.from.id, args[1])
-
-                                    await addToSellQueue(ctx.message.from.id, args[0], ID, args[1], amount, entry, 0, timestamp)
-
-                                    await ctx.replyWithHTML(`<i>Congratulations ${ctx.message.from.username} 🎉, You have successfully bought <b>'${amount.toFixed(4)} ${_name}'</b> 🚀. The tokens will be sold after doing ${user.take_profit} Xs or after ${user.stop_loss} hours</i>`)
-                                }
-                            })
-                        } catch (err) {
-                            console.log(err)
-                            const _user = await updateUserTokens(ctx.message.from.id, ID, args[0], args[1], 0, 0, "Pending Buy", timestamp)
-                            console.log(_user)
-
-                            await addToBuyQueue(ctx.message.from.id, args[0], ID, args[1], 1)
-
-                            await ctx.replyWithHTML(`<b>🚨 An error occured while trying to buy <i>'${_name}'</i>. It has been added to the Buy Queue.</b>`)
-                        }
+                        await ctx.replyWithHTML(`<i>Congratulations ${ctx.message.from.username} 🎉, Your buy order has successfully being added to the BuyQueue and will be bought once liquidity is added to the pair 🚀. The ID for this buy order is: <b>${ID}</b>. The tokens will be sold after doing ${user.take_profit} Xs or after ${user.stop_loss} hours</i>`)
                     } else {
                         await ctx.replyWithHTML(`<b>🚨 Insufficent balance for this trade OR your daily limit has been reached.</b>\n\n<i>Your trading wallet balance is <b>'${Number(balance)} BNB'.</b></i>\n\n<b>🚫 Make sure you fund your trading wallet to continue trading.</b>`)
                     }
                 } else {
-                    await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/buy 'Contract Address' 'Buy Amount'</i>\n\n<b>🚫 Make sure you enter a correct BSC address.</b>")
+                    await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/buy 'Contract Address' 'Buy Amount'</i>")
                 }
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
@@ -283,8 +242,8 @@ connectDB()
 setInterval(() => {
     runBuyQueue()
 
-    setTimeout(runSellQueue, 1000*60*5)
-}, 1000*60*10);
+    setTimeout(runSellQueue, 1000*60)
+}, 1000*60);
 
 setInterval(() => {
     resetBuyLimit()

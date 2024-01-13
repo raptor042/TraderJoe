@@ -1,5 +1,7 @@
 import { ethers } from "ethers"
 import { 
+    addToBuyQueue,
+    addToSellQueue,
     deleteBuyQueue,
     deleteSellQueue,
     getBuyQueue, 
@@ -9,6 +11,7 @@ import {
     resetUserDailyLimit, 
     updateBuyEntries, 
     updateSellEntries, 
+    updateUserDailyLimit, 
     updateUserTokenAmount, 
     updateUserTokenEntry, 
     updateUserTokenFlag, 
@@ -16,18 +19,27 @@ import {
     updateUserTokenProfit, 
     updateUserTokenSL, 
     updateUserTokenTP, 
-    updateUserTokenXs 
+    updateUserTokenXs, 
+    updateUserTokens
 } from "../__db__/index.js"
-import { WETH, buyToken, decimalFormatting, getAmountsOut, getPair, getTimestamp, sellToken, symbol } from "../__web3__/index.js"
+import { WETH, approveSwap, buyToken, decimalFormatting, getAmountsOut, getPair, getTimestamp, sellToken, symbol } from "../__web3__/index.js"
 import { getProvider } from "../__web3__/init.js"
 import { PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "../__web3__/config.js"
 
 export const getID = async (address) => {
-    const _symbol = await symbol(address)
+    const pair = new ethers.Contract(
+        address,
+        PAIR_ABI.abi,
+        getProvider()
+    )
+    const token0 = await pair.token0()
+    const token1 = await pair.token1()
+    const _symbol = await symbol(token0)
+    const symbol_ = await symbol(token1)
     const randInt = Math.floor(Math.random() * 10**8)
-    console.log(_symbol, randInt)
+    console.log(_symbol, symbol_, randInt)
 
-    return `${_symbol}-${randInt}`
+    return `${_symbol}-${symbol_}-${randInt}`
 }
 
 export const userExists = async userId => {
@@ -114,14 +126,18 @@ export const runBuyQueue = async () => {
             })
         } catch (err) {
             console.log(err)
-            await updateBuyEntries(element.userId)
+            if(element.retries <= 5) {
+                await updateBuyEntries(element.userId)
 
-            await updateUserTokenFlag(
-                element.userId,
-                element.token,
-                element.tokenId,
-                "Pending Buy"
-            )
+                await updateUserTokenFlag(
+                    element.userId,
+                    element.token,
+                    element.tokenId,
+                    "Pending Buy"
+                )
+            } else {
+                await deleteBuyQueue(element.userId)
+            }
         }
     })
 }
@@ -141,8 +157,8 @@ export const runSellQueue = async () => {
         const [amount0In, amount1Out] = await getAmountsOut(element.amount, element.token)
         const exit = Number(amount0In) / Number(amount1Out)
         const Xs = calculateXs(element.entry, exit)
-        
-        if(time_diff >= user.stop_loss || Xs >= user.take_profit) {
+        const x = time_diff >= user.stop_loss || Xs >= user.take_profit
+        if(true) {
             try {
                 const token = new ethers.Contract(
                     element.token,
@@ -153,7 +169,7 @@ export const runSellQueue = async () => {
                 await sellToken(
                     user.wallet_sk,
                     element.token,
-                    element.amount*0.9999,
+                    element.amount,
                     user.wallet_pk
                 )
 
@@ -220,13 +236,18 @@ export const runSellQueue = async () => {
                 })
             } catch (err) {
                 console.log(err)
-                await updateSellEntries(element.userId)
-                await updateUserTokenFlag(
-                    element.userId,
-                    element.token,
-                    element.tokenId,
-                    "Pending Sell"
-                )
+                if(element.retries <= 5) {
+                    await updateSellEntries(element.userId)
+                
+                    await updateUserTokenFlag(
+                        element.userId,
+                        element.token,
+                        element.tokenId,
+                        "Pending Sell"
+                    )
+                } else {
+                    await deleteSellQueue(element.userId)
+                }
             }
         }
     })
@@ -260,4 +281,83 @@ export const get24HReport = async userId => {
     })
 
     return { no_of_buys, no_of_sells, tokens }
+}
+
+export const watchPairLiquidity = async (userId, tokenId, pairAddress, buy_amount) => {
+    const pair = new ethers.Contract(
+        pairAddress,
+        PAIR_ABI.abi,
+        getProvider()
+    )
+    const token0 = await pair.token0()
+    const token1 = await pair.token1()
+    const weth = await WETH()
+    const token = token0 == weth ? token1 : token0
+    console.log(token0, token1, weth, token)
+
+    pair.on("Mint", async (sender, amount0, amount1, e) => {
+        console.log(sender, amount0, amount1)
+        const user = await getUser(userId)
+        console.log(user)
+
+        const _token = new ethers.Contract(
+            token,
+            PAIR_ERC20_ABI.abi,
+            getProvider()
+        )
+
+        const timestamp = await getTimestamp()
+
+        try {
+            await buyToken(
+                user.wallet_sk,
+                token,
+                buy_amount,
+                user.wallet_pk
+            )
+
+            _token.on("Transfer", async (from, to, value, e) => {
+                if(to == user.wallet_pk) {
+                    console.log(from, to, value)
+                    const amount = await decimalFormatting(token, value)
+                    const entry = amount / buy_amount
+                    console.log(entry, amount, timestamp)
+
+                    await approveSwap(
+                        token,
+                        user.wallet_sk,
+                        PANCAKESWAP_ROUTER02_MAINNET,
+                        amount
+                    )
+
+                    await updateUserTokens(userId, tokenId, token, buy_amount, amount, entry, "Bought", timestamp)
+
+                    await updateUserDailyLimit(userId, buy_amount)
+
+                    await addToSellQueue(userId, token, tokenId, buy_amount, amount, entry, 0, timestamp)
+                }
+            })
+        } catch (err) {
+            console.log(err)
+
+            await updateUserTokens(
+                userId,
+                tokenId,
+                token,
+                buy_amount,
+                0,
+                0,
+                "Pending Buy",
+                timestamp
+            )
+
+            await addToBuyQueue(
+                userId,
+                token,
+                tokenId,
+                buy_amount,
+                0
+            )
+        }
+    })
 }

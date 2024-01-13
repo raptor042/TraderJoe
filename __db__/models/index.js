@@ -23,7 +23,6 @@ const UserSchema = new Schema({
     ],
     buy_limit : Number,
     daily_limit : Number,
-    buy_amount : Number,
     take_profit : Number,
     stop_loss : Number
 })
