@@ -1,11 +1,8 @@
 import { Telegraf, Markup } from "telegraf"
 import { config } from "dotenv"
-import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairLiquidity } from "./utils/index.js"
-import { addToBuyQueue, addToSellQueue, addUser, connectDB, getUser, updateUserBuyLimit, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
-import { WETH, approveSwap, buyToken, createWallet, decimalFormatting, getPair, getTimestamp, name } from "./__web3__/index.js"
-import { ethers } from "ethers"
-import { getProvider } from "./__web3__/init.js"
-import { FACTORY_ABI, PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_FACTORY_TESTNET, PANCAKESWAP_ROUTER02_ABI, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "./__web3__/config.js"
+import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairCreation, watchPairLiquidity } from "./utils/index.js"
+import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
+import { createWallet } from "./__web3__/index.js"
 
 config()
 
@@ -65,51 +62,6 @@ bot.command("wallet",  async ctx => {
     }
 })
 
-bot.command("buy", async ctx => {
-    try {
-        if (ctx.message.chat.type == "private") {
-            const user_exists = await userExists(ctx.message.from.id)
-            const user = await getUser(ctx.message.from.id)
-            console.log(user)
-
-            if(user_exists) {
-                const args = ctx.args
-
-                if(args.length == 2) {
-                    const provider = getProvider()
-                    const _balance = await provider.getBalance(user.wallet_pk)
-                    const balance = ethers.formatEther(_balance)
-                    console.log(balance, provider)
-
-                    if(Number(balance) >= args[1] && user.daily_limit > 0) {
-                        const ID = await getID(args[0])
-                        await watchPairLiquidity(
-                            ctx.message.from.id,
-                            ID,
-                            args[0],
-                            args[1]
-                        )
-                        console.log(args)
-
-                        await ctx.replyWithHTML(`<i>Congratulations ${ctx.message.from.username} 🎉, Your buy order has successfully being added to the BuyQueue and will be bought once liquidity is added to the pair 🚀. The ID for this buy order is: <b>${ID}</b>. The tokens will be sold after doing ${user.take_profit} Xs or after ${user.stop_loss} hours</i>`)
-                    } else {
-                        await ctx.replyWithHTML(`<b>🚨 Insufficent balance for this trade OR your daily limit has been reached.</b>\n\n<i>Your trading wallet balance is <b>'${Number(balance)} BNB'.</b></i>\n\n<b>🚫 Make sure you fund your trading wallet to continue trading.</b>`)
-                    }
-                } else {
-                    await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/buy 'Contract Address' 'Buy Amount'</i>")
-                }
-            } else {
-                await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
-            }
-        } else {
-            await ctx.replyWithHTML(`<b>🚨 This bot is only used in private chats.</b>`)
-        }
-    } catch (err) {
-        await ctx.replyWithHTML("<b>🚨 An error occured while using the bot.</b>")
-        console.log(err)
-    }
-})
-
 bot.command("daily_limit", async ctx => {
     try {
         if (ctx.message.chat.type == "private") {
@@ -126,6 +78,34 @@ bot.command("daily_limit", async ctx => {
                     await ctx.replyWithHTML(`<b>🏪 You have successfully set your Buy Limit to ${args[0]} BNB every 24H</b>`)
                 } else {
                     await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/daily_limit 'Amount'</i>")
+                }
+            } else {
+                await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
+            }
+        } else {
+            await ctx.replyWithHTML(`<b>🚨 This bot is only used in private chats.</b>`)
+        }
+    } catch (err) {
+        await ctx.replyWithHTML("<b>🚨 An error occured while using the bot.</b>")
+        console.log(err)
+    }
+})
+
+bot.command("buy_amount", async ctx => {
+    try {
+        if (ctx.message.chat.type == "private") {
+            const user_exists = await userExists(ctx.message.from.id)
+
+            if(user_exists) {
+                const args = ctx.args
+
+                if(args.length == 1) {
+                    const user = await updateUserBuyAmount(ctx.message.from.id, Number(args[0]))
+                    console.log(user, args)
+
+                    await ctx.replyWithHTML(`<b>🏪 You have successfully set your Buy Amount to ${args[0]} BNB for every trade</b>`)
+                } else {
+                    await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/buy_amount 'Amount'</i>")
                 }
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
@@ -250,6 +230,10 @@ setInterval(() => {
 setInterval(() => {
     resetBuyLimit()
 }, 1000*60*60*24);
+
+setTimeout(() => {
+    watchPairCreation()
+}, 1000*60)
 
 bot.launch()
 

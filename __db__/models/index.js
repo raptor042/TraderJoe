@@ -9,7 +9,6 @@ const UserSchema = new Schema({
         {
             address : String,
             tokenId : String,
-            buy_amount : Number,
             amount : Number,
             entry : { type : Number, default : 0 },
             tp : { type : Number, default : 0 },
@@ -23,6 +22,7 @@ const UserSchema = new Schema({
     ],
     buy_limit : Number,
     daily_limit : Number,
+    buy_amount : Number,
     take_profit : Number,
     stop_loss : Number
 })

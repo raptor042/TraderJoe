@@ -188,6 +188,16 @@ export const updateUserBuyLimit = async (userId, amount) => {
     }
 }
 
+export const updateUserBuyAmount = async (userId, amount) => {
+    try {
+        const user = await UserModel.findOneAndUpdate({ userId }, {  $set : { buy_amount : amount } })
+
+        return user
+    } catch (err) {
+        console.log(err)
+    }
+}
+
 export const resetUserDailyLimit = async (userId, amount) => {
     try {
         const user = await UserModel.findOneAndUpdate({ userId }, {  $set : { daily_limit : amount } })

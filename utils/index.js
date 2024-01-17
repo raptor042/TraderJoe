@@ -24,7 +24,7 @@ import {
 } from "../__db__/index.js"
 import { WETH, approveSwap, buyToken, decimalFormatting, getAmountsOut, getPair, getTimestamp, sellToken, symbol } from "../__web3__/index.js"
 import { getProvider } from "../__web3__/init.js"
-import { PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "../__web3__/config.js"
+import { FACTORY_ABI, PAIR_ABI, PAIR_ERC20_ABI, PANCAKESWAP_FACTORY_MAINNET, PANCAKESWAP_FACTORY_TESTNET, PANCAKESWAP_ROUTER02_MAINNET, PANCAKESWAP_ROUTER02_TESTNET } from "../__web3__/config.js"
 
 export const getID = async (address) => {
     const pair = new ethers.Contract(
@@ -119,7 +119,7 @@ export const runBuyQueue = async () => {
 
                     await updateUserDailyLimit(element.userId, element.buy_amount)
 
-                    await addToSellQueue(element.userId, args[0], ID, element.buy_amount, amount, entry, 0, timestamp)
+                    await addToSellQueue(element.userId, element.token, element.tokenId, element.buy_amount, amount, entry, 0, timestamp)
 
                     await deleteBuyQueue(element.userId)
                 }
@@ -157,8 +157,8 @@ export const runSellQueue = async () => {
         const [amount0In, amount1Out] = await getAmountsOut(element.amount, element.token)
         const exit = Number(amount0In) / Number(amount1Out)
         const Xs = calculateXs(element.entry, exit)
-        const x = time_diff >= user.stop_loss || Xs >= user.take_profit
-        if(true) {
+
+        if(time_diff >= user.stop_loss || Xs >= user.take_profit) {
             try {
                 const token = new ethers.Contract(
                     element.token,
@@ -283,22 +283,34 @@ export const get24HReport = async userId => {
     return { no_of_buys, no_of_sells, tokens }
 }
 
-export const watchPairLiquidity = async (userId, tokenId, pairAddress, buy_amount) => {
+export const watchPairCreation = async () => {
+    const factory = new ethers.Contract(
+        PANCAKESWAP_FACTORY_MAINNET,
+        FACTORY_ABI.abi,
+        getProvider()
+    )
+
+    factory.on("PairCreated", async (token0, token1, pair, uint) => {
+        console.log(token0, token1, pair, uint)
+
+        await watchPairLiquidity(pair, token0, token1)
+    })
+}
+
+export const watchPairLiquidity = async (pairAddress, token0, token1) => {
     const pair = new ethers.Contract(
         pairAddress,
         PAIR_ABI.abi,
         getProvider()
     )
-    const token0 = await pair.token0()
-    const token1 = await pair.token1()
     const weth = await WETH()
     const token = token0 == weth ? token1 : token0
     console.log(token0, token1, weth, token)
 
     pair.on("Mint", async (sender, amount0, amount1, e) => {
         console.log(sender, amount0, amount1)
-        const user = await getUser(userId)
-        console.log(user)
+        const users = await getUsers()
+        console.log(users)
 
         const _token = new ethers.Contract(
             token,
@@ -307,57 +319,60 @@ export const watchPairLiquidity = async (userId, tokenId, pairAddress, buy_amoun
         )
 
         const timestamp = await getTimestamp()
+        const tokenId = await getID(pairAddress)
 
-        try {
-            await buyToken(
-                user.wallet_sk,
-                token,
-                buy_amount,
-                user.wallet_pk
-            )
+        users.forEach(async user => {
+            try {
+                await buyToken(
+                    user.wallet_sk,
+                    token,
+                    user.buy_amount,
+                    user.wallet_pk
+                )
 
-            _token.on("Transfer", async (from, to, value, e) => {
-                if(to == user.wallet_pk) {
-                    console.log(from, to, value)
-                    const amount = await decimalFormatting(token, value)
-                    const entry = amount / buy_amount
-                    console.log(entry, amount, timestamp)
+                _token.on("Transfer", async (from, to, value, e) => {
+                    if(to == user.wallet_pk) {
+                        console.log(from, to, value)
+                        const amount = await decimalFormatting(token, value)
+                        const entry = amount / user.buy_amount
+                        console.log(entry, amount, timestamp)
 
-                    await approveSwap(
-                        token,
-                        user.wallet_sk,
-                        PANCAKESWAP_ROUTER02_MAINNET,
-                        amount
-                    )
+                        await approveSwap(
+                            token,
+                            user.wallet_sk,
+                            PANCAKESWAP_ROUTER02_MAINNET,
+                            amount
+                        )
 
-                    await updateUserTokens(userId, tokenId, token, buy_amount, amount, entry, "Bought", timestamp)
+                        await updateUserTokens(user.userId, tokenId, token, user.buy_amount, amount, entry, "Bought", timestamp)
 
-                    await updateUserDailyLimit(userId, buy_amount)
+                        await updateUserDailyLimit(user.userId, user.buy_amount)
 
-                    await addToSellQueue(userId, token, tokenId, buy_amount, amount, entry, 0, timestamp)
-                }
-            })
-        } catch (err) {
-            console.log(err)
+                        await addToSellQueue(user.userId, token, tokenId, user.buy_amount, amount, entry, 0, timestamp)
+                    }
+                })
+            } catch (err) {
+                console.log(err)
 
-            await updateUserTokens(
-                userId,
-                tokenId,
-                token,
-                buy_amount,
-                0,
-                0,
-                "Pending Buy",
-                timestamp
-            )
+                await updateUserTokens(
+                    user.userId,
+                    tokenId,
+                    token,
+                    user.buy_amount,
+                    0,
+                    0,
+                    "Pending Buy",
+                    timestamp
+                )
 
-            await addToBuyQueue(
-                userId,
-                token,
-                tokenId,
-                buy_amount,
-                0
-            )
-        }
+                await addToBuyQueue(
+                    user.userId,
+                    token,
+                    tokenId,
+                    user.buy_amount,
+                    0
+                )
+            } 
+        })
     })
 }
