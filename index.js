@@ -120,7 +120,7 @@ bot.command("buy_amount", async ctx => {
     }
 })
 
-bot.command("enable_trading",  async ctx => {
+bot.command("enable_buys",  async ctx => {
     try {
         if (ctx.message.chat.type == "private") {
             const user_exists = await userExists(ctx.message.from.id)
@@ -142,7 +142,7 @@ bot.command("enable_trading",  async ctx => {
     }
 })
 
-bot.command("disable_trading",  async ctx => {
+bot.command("disable_buys",  async ctx => {
     try {
         if (ctx.message.chat.type == "private") {
             const user_exists = await userExists(ctx.message.from.id)
