@@ -129,7 +129,7 @@ bot.command("enable_buys",  async ctx => {
                 const user = await updateUserBuying(ctx.message.from.id, "Enabled")
                 console.log(user)
 
-                await ctx.replyWithHTML(`<b>💰 You have enabled trading on your wallet.</b>`)
+                await ctx.replyWithHTML(`<b>💰 You have enabled all buys on your wallet.</b>`)
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
             }
@@ -151,7 +151,7 @@ bot.command("disable_buys",  async ctx => {
                 const user = await updateUserBuying(ctx.message.from.id, "Disabled")
                 console.log(user)
 
-                await ctx.replyWithHTML(`<b>💰 You have disabled trading on your wallet.</b>`)
+                await ctx.replyWithHTML(`<b>💰 You have disabled all buys on your wallet.</b>`)
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
             }
