@@ -310,7 +310,8 @@ export const watchPairLiquidity = async (pairAddress, token0, token1) => {
     pair.on("Mint", async (sender, amount0, amount1, e) => {
         console.log(sender, amount0, amount1)
         const users = await getUsers()
-        console.log(users)
+        const _users = users.filter(user => user.buying == "Enabled")
+        console.log(_users)
 
         const _token = new ethers.Contract(
             token,
@@ -321,36 +322,44 @@ export const watchPairLiquidity = async (pairAddress, token0, token1) => {
         const timestamp = await getTimestamp()
         const tokenId = await getID(pairAddress)
 
-        users.forEach(async user => {
+        _users.forEach(async user => {
             try {
-                await buyToken(
-                    user.wallet_sk,
-                    token,
-                    user.buy_amount,
-                    user.wallet_pk
-                )
+                const tokenExist = user.tokens.filter(_token => _token.address == token)
+                console.log(tokenExist)
 
-                _token.on("Transfer", async (from, to, value, e) => {
-                    if(to == user.wallet_pk) {
-                        console.log(from, to, value)
-                        const amount = await decimalFormatting(token, value)
-                        const entry = amount / user.buy_amount
-                        console.log(entry, amount, timestamp)
+                const balance = await getProvider().getBalance(user.wallet_pk)
+                console.log(balance)
 
-                        await approveSwap(
-                            token,
-                            user.wallet_sk,
-                            PANCAKESWAP_ROUTER02_MAINNET,
-                            amount
-                        )
+                if(balance >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
+                    await buyToken(
+                        user.wallet_sk,
+                        token,
+                        user.buy_amount,
+                        user.wallet_pk
+                    )
 
-                        await updateUserTokens(user.userId, tokenId, token, user.buy_amount, amount, entry, "Bought", timestamp)
+                    _token.on("Transfer", async (from, to, value, e) => {
+                        if(to == user.wallet_pk) {
+                            console.log(from, to, value)
+                            const amount = await decimalFormatting(token, value)
+                            const entry = amount / user.buy_amount
+                            console.log(entry, amount, timestamp)
 
-                        await updateUserDailyLimit(user.userId, user.buy_amount)
+                            await approveSwap(
+                                token,
+                                user.wallet_sk,
+                                PANCAKESWAP_ROUTER02_MAINNET,
+                                amount
+                            )
 
-                        await addToSellQueue(user.userId, token, tokenId, user.buy_amount, amount, entry, 0, timestamp)
-                    }
-                })
+                            await updateUserTokens(user.userId, tokenId, token, user.buy_amount, amount, entry, "Bought", timestamp)
+
+                            await updateUserDailyLimit(user.userId, user.buy_amount)
+
+                            await addToSellQueue(user.userId, token, tokenId, user.buy_amount, amount, entry, 0, timestamp)
+                        }
+                    })
+                }
             } catch (err) {
                 console.log(err)
 

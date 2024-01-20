@@ -1,7 +1,7 @@
 import { Telegraf, Markup } from "telegraf"
 import { config } from "dotenv"
 import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairCreation, watchPairLiquidity } from "./utils/index.js"
-import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
+import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserBuying, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
 import { createWallet } from "./__web3__/index.js"
 
 config()
@@ -107,6 +107,50 @@ bot.command("buy_amount", async ctx => {
                 } else {
                     await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/buy_amount 'Amount'</i>")
                 }
+            } else {
+                await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
+            }
+        } else {
+            await ctx.replyWithHTML(`<b>🚨 This bot is only used in private chats.</b>`)
+        }
+    } catch (err) {
+        await ctx.replyWithHTML("<b>🚨 An error occured while using the bot.</b>")
+        console.log(err)
+    }
+})
+
+bot.command("enable_trading",  async ctx => {
+    try {
+        if (ctx.message.chat.type == "private") {
+            const user_exists = await userExists(ctx.message.from.id)
+
+            if(user_exists) {
+                const user = await updateUserBuying(ctx.message.from.id, "Enabled")
+                console.log(user)
+
+                await ctx.replyWithHTML(`<b>💰 You have enabled trading on your wallet.</b>`)
+            } else {
+                await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
+            }
+        } else {
+            await ctx.replyWithHTML(`<b>🚨 This bot is only used in private chats.</b>`)
+        }
+    } catch (err) {
+        await ctx.replyWithHTML("<b>🚨 An error occured while using the bot.</b>")
+        console.log(err)
+    }
+})
+
+bot.command("disable_trading",  async ctx => {
+    try {
+        if (ctx.message.chat.type == "private") {
+            const user_exists = await userExists(ctx.message.from.id)
+
+            if(user_exists) {
+                const user = await updateUserBuying(ctx.message.from.id, "Disabled")
+                console.log(user)
+
+                await ctx.replyWithHTML(`<b>💰 You have disabled trading on your wallet.</b>`)
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
             }

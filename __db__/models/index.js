@@ -24,7 +24,8 @@ const UserSchema = new Schema({
     daily_limit : Number,
     buy_amount : Number,
     take_profit : Number,
-    stop_loss : Number
+    stop_loss : Number,
+    buying : { type : String, enum : ["Enabled", "Disabled" ], default : "Enabled" }
 })
 
 const BuyQueueSchema = new Schema({
