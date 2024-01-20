@@ -20,11 +20,11 @@ const UserSchema = new Schema({
             timestamp : Number
         }
     ],
-    buy_limit : Number,
-    daily_limit : Number,
-    buy_amount : Number,
-    take_profit : Number,
-    stop_loss : Number,
+    buy_limit : { type : Number, default : 0 },
+    daily_limit : { type : Number, default : 0 },
+    buy_amount : { type : Number, default : 0 },
+    take_profit : { type : Number, default : 0 },
+    stop_loss : { type : Number, default : 0 },
     buying : { type : String, enum : ["Enabled", "Disabled" ], default : "Enabled" }
 })
 

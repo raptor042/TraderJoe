@@ -268,8 +268,8 @@ setInterval(() => {
 
     setTimeout(() => {
         runBuyQueue()
-    }, 1000*60*5)
-}, 1000*60*10);
+    }, 1000*60*1.5)
+}, 1000*60*3);
 
 setInterval(() => {
     resetBuyLimit()
