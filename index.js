@@ -227,7 +227,7 @@ bot.command("stop_loss", async ctx => {
                     const user = await updateUserSL(ctx.message.from.id, Number(args[0]))
                     console.log(user, args)
 
-                    await ctx.replyWithHTML(`<b>💰 You have successfully set your Stop Loss for each trade to ${args[0]} hours</b>`)
+                    await ctx.replyWithHTML(`<b>💰 You have successfully set your Stop Loss for each trade to ${args[0]} minutes</b>`)
                 } else {
                     await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/stop_loss 'Duration'</i>")
                 }

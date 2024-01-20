@@ -151,7 +151,7 @@ export const runSellQueue = async () => {
         console.log(user)
 
         const timestamp = await getTimestamp()
-        const time_diff = (timestamp - element.timestamp) / (1000*60*60)
+        const time_diff = (timestamp - element.timestamp) / 60
         console.log(timestamp, element.timestamp, time_diff)
 
         const [amount0In, amount1Out] = await getAmountsOut(element.amount, element.token)
@@ -265,7 +265,7 @@ export const get24HReport = async userId => {
 
     user.tokens.forEach(token => {
         console.log(token.tokenId)
-        const time_diff = (timestamp - token.timestamp) / (1000*60*60*24)
+        const time_diff = (timestamp - token.timestamp) / (60*60*24)
         console.log(timestamp, time_diff)
 
         if(time_diff <= 1) {
