@@ -293,11 +293,11 @@ export const watchPairCreation = async () => {
     factory.on("PairCreated", async (token0, token1, pair, uint) => {
         console.log(token0, token1, pair, uint)
 
-        await watchPairLiquidity(pair, token0, token1)
+        await watchPairAddLiquidity(pair, token0, token1)
     })
 }
 
-export const watchPairLiquidity = async (pairAddress, token0, token1) => {
+export const watchPairAddLiquidity = async (pairAddress, token0, token1) => {
     const pair = new ethers.Contract(
         pairAddress,
         PAIR_ABI.abi,
@@ -328,9 +328,9 @@ export const watchPairLiquidity = async (pairAddress, token0, token1) => {
                 console.log(tokenExist)
 
                 const balance = await getProvider().getBalance(user.wallet_pk)
-                console.log(balance)
+                console.log(ethers.formatEther(balance))
 
-                if(balance >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
+                if(Number(ethers.formatEther(balance)) >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
                     await buyToken(
                         user.wallet_sk,
                         token,

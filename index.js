@@ -3,6 +3,7 @@ import { config } from "dotenv"
 import { get24HReport, getID, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairCreation, watchPairLiquidity } from "./utils/index.js"
 import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserBuying, updateUserDailyLimit, updateUserSL, updateUserTP, updateUserTokens } from "./__db__/index.js"
 import { createWallet } from "./__web3__/index.js"
+import { getProvider } from "./__web3__/init.js"
 
 config()
 
@@ -151,6 +152,29 @@ bot.command("disable_trading",  async ctx => {
                 console.log(user)
 
                 await ctx.replyWithHTML(`<b>💰 You have disabled trading on your wallet.</b>`)
+            } else {
+                await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
+            }
+        } else {
+            await ctx.replyWithHTML(`<b>🚨 This bot is only used in private chats.</b>`)
+        }
+    } catch (err) {
+        await ctx.replyWithHTML("<b>🚨 An error occured while using the bot.</b>")
+        console.log(err)
+    }
+})
+
+bot.command("balance",  async ctx => {
+    try {
+        if (ctx.message.chat.type == "private") {
+            const user_exists = await userExists(ctx.message.from.id)
+
+            if(user_exists) {
+                const user = await getUser(ctx.message.from.id)
+                const balance = await getProvider().getBalance(user.wallet_pk)
+                console.log(user, ethers.formatEther(balance))
+
+                await ctx.replyWithHTML(`<b>🪙 Your balance is ${ethers.formatEther(balance)} BNB.</b>`)
             } else {
                 await ctx.replyWithHTML(`<b>Hello ${ctx.message.from.username} 👋, Welcome to the TraderJoe trading bot 🤖.</b>\n\n<i>Your trading wallet is not yet configured</i>`)
             }
