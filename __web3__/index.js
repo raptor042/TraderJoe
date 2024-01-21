@@ -56,14 +56,16 @@ export const decimalFormatting = async (ca, amount) => {
         getProvider()
     )
     const decimals = Number(await token.decimals())
-    const points = decimals == 18 ? 18 : 18 - decimals
+    if(decimals == 18) {
+        return Number(ethers.formatEther(amount))
+    } else {
+        const points = 18 - decimals
 
-    const value = decimals == 18 ? 
-        Number(ethers.formatEther(amount)) :
-        Number(ethers.formatEther(amount)) * 10**points
-    console.log(decimals, points, value)
+        const value = Number(ethers.formatEther(amount)) * (10**points)
+        console.log(decimals, points, value)
 
-    return value
+        return value
+    }
 }
 
 export const getBalance = async (ca, address) => {
