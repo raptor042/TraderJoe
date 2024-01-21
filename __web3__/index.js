@@ -91,7 +91,7 @@ export const approveSwap = async (ca, phrase, spender, amount) => {
     try {
         const approve = await token.approve(
             spender,
-            ethers.parseEther(`${amount}`)
+            ethers.parseEther(amount.toFixed())
         )
         console.log(approve)
 
@@ -131,7 +131,7 @@ export const getAmountsOut = async (amount, address) => {
     )
 
     const amountsOut = await router.getAmountsOut(
-        ethers.parseEther(`${amount}`),
+        ethers.parseEther(amount.toFixed()),
         [address, await router.WETH()]
     )
     console.log(amountsOut)
@@ -155,7 +155,7 @@ export const buyToken = async (phrase, address, amount, to) => {
         to,
         time,
         { 
-            value : ethers.parseEther(`${amount}`)
+            value : ethers.parseEther(amount.toFixed())
         }
     )
     console.log("buy", swap)
@@ -173,7 +173,7 @@ export const sellToken = async (phrase, address, amount, to) => {
 
     try {
         const swap = await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            ethers.parseEther(`${amount}`),
+            ethers.parseEther(amount.toFixed()),
             ethers.parseEther("0"),
             [address, await router.WETH()],
             to,
