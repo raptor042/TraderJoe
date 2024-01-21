@@ -157,6 +157,7 @@ export const runSellQueue = async () => {
         const [amount0In, amount1Out] = await getAmountsOut(element.amount, element.token)
         const exit = Number(amount0In) / Number(amount1Out)
         const Xs = calculateXs(element.entry, exit)
+        console.log(time_diff >= user.stop_loss, Xs >= user.take_profit)
 
         if(time_diff >= user.stop_loss || Xs >= user.take_profit) {
             try {
