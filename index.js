@@ -4,6 +4,7 @@ import { get24HReport, resetBuyLimit, runBuyQueue, runSellQueue, userExists, wat
 import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserBuying, updateUserSL, updateUserTP } from "./__db__/index.js"
 import { createWallet } from "./__web3__/index.js"
 import { getProvider } from "./__web3__/init.js"
+import { ethers } from "ethers"
 
 config()
 
