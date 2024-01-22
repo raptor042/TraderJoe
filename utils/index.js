@@ -83,8 +83,9 @@ export const runBuyQueue = async () => {
 
             const [amount0In, amount1Out] = await getAmountsOut(1, token)
             console.log(amount0In, amount1Out)
+            const x = amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER
 
-            if(amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER) {
+            if(true) {
                 const tokenExist = user.tokens.filter(_token => _token.address == token)
                 console.log(tokenExist)
 
