@@ -108,6 +108,13 @@ export const runBuyQueue = async () => {
                             const entry = amount / element.buy_amount
                             console.log(entry, amount, timestamp)
 
+                            await approveSwap(
+                                token,
+                                user.wallet_sk,
+                                PANCAKESWAP_ROUTER02_MAINNET,
+                                amount
+                            )
+
                             await updateUserTokenAmount(
                                 element.userId,
                                 element.token,
