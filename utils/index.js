@@ -329,8 +329,9 @@ export const watchPairAddLiquidity = async (pairAddress, token0, token1) => {
         
         const [amount0In, amount1Out] = await getAmountsOut(1, token)
         console.log(amount0In, amount1Out)
+        const x = amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER
 
-        if(amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER) {
+        if(true) {
             const _token = new ethers.Contract(
                 token,
                 PAIR_ERC20_ABI.abi,
