@@ -52,12 +52,11 @@ export const addUser = async (userId, username, pk, sk) => {
     }
 }
 
-export const updateUserTokens = async (userId, tokenId, address, buy_amount, amount, entry, flag, timestamp) => {
+export const updateUserTokens = async (userId, tokenId, address, amount, entry, flag, timestamp) => {
     try {
         const token = {
             address,
             tokenId,
-            buy_amount,
             amount,
             entry,
             flag,
@@ -178,6 +177,32 @@ export const updateUserTokenFlag = async (userId, address, tokenId, flag) => {
     }
 }
 
+export const updateUserTokenBuyRetries = async (userId, address, tokenId) => {
+    try {
+        const user = await UserModel.findOneAndUpdate(
+            { userId, tokens : { $elemMatch : { address, tokenId } } },
+            { $inc : { "tokens.$.buy_retries" : 1 } }
+        )
+
+        return user
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+export const updateUserTokenSellRetries = async (userId, address, tokenId) => {
+    try {
+        const user = await UserModel.findOneAndUpdate(
+            { userId, tokens : { $elemMatch : { address, tokenId } } },
+            { $inc : { "tokens.$.sell_retries" : 1 } }
+        )
+
+        return user
+    } catch (err) {
+        console.log(err)
+    }
+}
+
 export const updateUserBuyLimit = async (userId, amount) => {
     try {
         const user = await UserModel.findOneAndUpdate({ userId }, {  $set : { buy_limit : amount } })
@@ -253,103 +278,6 @@ export const deleteUser = async (userId) => {
         const user = await UserModel.deleteOne({ userId })
 
         return user
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const getBuyQueue = async () => {
-    try {
-        const queue = await BuyQueueModel.find()
-        return queue
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const addToBuyQueue = async (userId, token, tokenId, buy_amount, retries) => {
-    try {
-        const queue = new BuyQueueModel({
-            userId,
-            token,
-            tokenId,
-            buy_amount,
-            retries
-        })
-
-        const data = await queue.save()
-
-        return data
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const updateBuyEntries = async (userId) => {
-    try {
-        const queue = await BuyQueueModel.findOneAndUpdate({ userId }, {  $inc : { retries : 1 } })
-
-        return queue
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const deleteBuyQueue = async (userId) => {
-    try {
-        const queue = await BuyQueueModel.deleteOne({ userId })
-
-        return queue
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const getSellQueue = async () => {
-    try {
-        const queue = await SellQueueModel.find()
-        return queue
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const addToSellQueue = async (userId, token, tokenId, buy_amount, amount, entry, retries, timestamp) => {
-    try {
-        const queue = new SellQueueModel({
-            userId,
-            token,
-            tokenId,
-            buy_amount,
-            amount,
-            entry,
-            retries,
-            timestamp
-        })
-
-        const data = await queue.save()
-
-        return data
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const updateSellEntries = async (userId) => {
-    try {
-        const queue = await SellQueueModel.findOneAndUpdate({ userId }, {  $inc : { retries : 1 } })
-
-        return queue
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const deleteSellQueue = async (userId) => {
-    try {
-        const queue = await SellQueueModel.deleteOne({ userId })
-
-        return queue
     } catch (err) {
         console.log(err)
     }

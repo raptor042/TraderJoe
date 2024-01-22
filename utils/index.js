@@ -1,23 +1,17 @@
 import { ethers } from "ethers"
 import { 
-    addToBuyQueue,
-    addToSellQueue,
-    deleteBuyQueue,
-    deleteSellQueue,
-    getBuyQueue, 
-    getSellQueue, 
     getUser, 
     getUsers, 
     resetUserDailyLimit, 
-    updateBuyEntries, 
-    updateSellEntries, 
     updateUserDailyLimit, 
     updateUserTokenAmount, 
+    updateUserTokenBuyRetries, 
     updateUserTokenEntry, 
     updateUserTokenFlag, 
     updateUserTokenLoss, 
     updateUserTokenProfit, 
     updateUserTokenSL, 
+    updateUserTokenSellRetries, 
     updateUserTokenTP, 
     updateUserTokenXs, 
     updateUserTokens
@@ -66,46 +60,44 @@ const calculateXs = (price0, price1) => {
     return Xs
 }
 
-export const runBuyQueue = async () => {
-    const queue = await getBuyQueue()
-    console.log(queue)
+export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
+    const users = await getUsers()
+    const _users = users.filter(user => user.buying == "Enabled")
+    console.log(_users)
 
-    queue.forEach(async element => {
-        try {
-            const user = await getUser(element.userId)
-            console.log(user)
-
-            const token = new ethers.Contract(
-                element.token,
+    _users.forEach(async user => {
+        if(flag == "b" && token != "nil" && pairAddress != "nil") {
+            const _token = new ethers.Contract(
+                token,
                 PAIR_ERC20_ABI.abi,
                 getProvider()
             )
+            console.log("b")
 
-            const [amount0In, amount1Out] = await getAmountsOut(1, token)
-            console.log(amount0In, amount1Out)
-            const x = amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER
+            const timestamp = await getTimestamp()
+            const tokenId = await getID(pairAddress)
+            console.log(timestamp, tokenId)
 
-            if(true) {
-                const tokenExist = user.tokens.filter(_token => _token.address == token)
-                console.log(tokenExist)
+            const tokenExist = user.tokens.filter(_token => _token.address == token)
+            console.log(tokenExist)
 
-                const balance = await getProvider().getBalance(user.wallet_pk)
-                console.log(ethers.formatEther(balance))
+            const balance = await getProvider().getBalance(user.wallet_pk)
+            console.log(ethers.formatEther(balance))
 
-                if(Number(ethers.formatEther(balance)) >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
+            if(Number(ethers.formatEther(balance)) >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
+                try {
                     await buyToken(
                         user.wallet_sk,
-                        element.token,
-                        element.buy_amount,
+                        token,
+                        user.buy_amount,
                         user.wallet_pk
                     )
 
-                    token.on("Transfer", async (from, to, value, e) => {
+                    _token.on("Transfer", async (from, to, value, e) => {
                         if(to == user.wallet_pk) {
                             console.log(from, to, value)
-                            const timestamp = await getTimestamp()
-                            const amount = await decimalFormatting(element.token, value)
-                            const entry = amount / element.buy_amount
+                            const amount = await decimalFormatting(token, value)
+                            const entry = amount / user.buy_amount
                             console.log(entry, amount, timestamp)
 
                             await approveSwap(
@@ -115,163 +107,208 @@ export const runBuyQueue = async () => {
                                 amount
                             )
 
-                            await updateUserTokenAmount(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                amount
-                            )
+                            await updateUserTokens(user.userId, tokenId, token, amount, entry, "Bought", timestamp)
 
-                            await updateUserTokenEntry(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                entry
-                            )
-
-                            await updateUserTokenFlag(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                "Bought"
-                            )
-
-                            await updateUserDailyLimit(element.userId, element.buy_amount)
-
-                            await addToSellQueue(element.userId, element.token, element.tokenId, element.buy_amount, amount, entry, 0, timestamp)
-
-                            await deleteBuyQueue(element.userId)
+                            await updateUserDailyLimit(user.userId, user.buy_amount)
                         }
                     })
+                } catch (err) {
+                    console.log(err)
+
+                    await updateUserTokens(
+                        user.userId,
+                        tokenId,
+                        token,
+                        0,
+                        0,
+                        "Pending Buy",
+                        timestamp
+                    )
                 }
             }
-        } catch (err) {
-            console.log(err)
-            if(element.retries <= 5) {
-                await updateBuyEntries(element.userId)
+        } else if(flag == "pb" && token == "nil" && pairAddress == "nil") {
+            console.log("pb")
 
-                await updateUserTokenFlag(
-                    element.userId,
-                    element.token,
-                    element.tokenId,
-                    "Pending Buy"
-                )
-            } else {
-                await deleteBuyQueue(element.userId)
-            }
-        }
-    })
-}
+            const tokens = user.tokens.filter(token => token.flag == "Pending Buy")
+            console.log(tokens)
 
-export const runSellQueue = async () => {
-    const queue = await getSellQueue()
-    console.log(queue)
+            const balance = await getProvider().getBalance(user.wallet_pk)
+            console.log(ethers.formatEther(balance))
 
-    queue.forEach(async element => {
-        const user = await getUser(element.userId)
-        console.log(user)
-
-        const timestamp = await getTimestamp()
-        const time_diff = (timestamp - element.timestamp) / 60
-        console.log(timestamp, element.timestamp, time_diff)
-
-        const [amount0In, amount1Out] = await getAmountsOut(element.amount, element.token)
-        const exit = Number(amount0In) / Number(amount1Out)
-        const Xs = calculateXs(element.entry, exit)
-        console.log(time_diff >= user.stop_loss, Xs >= user.take_profit)
-
-        if(time_diff >= user.stop_loss || Xs >= user.take_profit) {
-            try {
-                const token = new ethers.Contract(
-                    element.token,
+            tokens.forEach(async token => {
+                const _token = new ethers.Contract(
+                    token.address,
                     PAIR_ERC20_ABI.abi,
                     getProvider()
                 )
 
-                await sellToken(
-                    user.wallet_sk,
-                    element.token,
-                    element.amount,
-                    user.wallet_pk
-                )
-
-                token.on("Transfer", async (from, to, value, e) => {
-                    if(from == user.wallet_pk) {
-                        console.log(from, to, value)
-                        if(exit > element.entry) {
-                            const profit = Number(ethers.formatEther(amount1Out)) - element.buy_amount
-    
-                            await updateUserTokenProfit(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                profit
-                            )
-    
-                            await updateUserTokenTP(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                exit
-                            )
-    
-                            await updateUserTokenXs(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                Xs
-                            )
-                        } else if(exit < element.entry) {
-                            const loss = element.buy_amount - Number(ethers.formatEther(amount1Out))
-    
-                            await updateUserTokenLoss(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                loss
-                            )
-    
-                            await updateUserTokenSL(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                exit
-                            )
-    
-                            await updateUserTokenXs(
-                                element.userId,
-                                element.token,
-                                element.tokenId,
-                                Xs
-                            )
-                        }
-    
-                        await updateUserTokenFlag(
-                            element.userId,
-                            element.token,
-                            element.tokenId,
-                            "Sold"
+                if(Number(ethers.formatEther(balance)) >= user.buy_amount && user.daily_limit > 0 && token.buy_retries <= 5) {
+                    try {
+                        await buyToken(
+                            user.wallet_sk,
+                            token.address,
+                            user.buy_amount,
+                            user.wallet_pk
                         )
     
-                        await deleteSellQueue(element.userId)
+                        _token.on("Transfer", async (from, to, value, e) => {
+                            if(to == user.wallet_pk) {
+                                console.log(from, to, value)
+                                const amount = await decimalFormatting(token.address, value)
+                                const entry = amount / user.buy_amount
+                                console.log(entry, amount)
+    
+                                await approveSwap(
+                                    token.address,
+                                    user.wallet_sk,
+                                    PANCAKESWAP_ROUTER02_MAINNET,
+                                    amount
+                                )
+    
+                                await updateUserTokenAmount(
+                                    user.userId,
+                                    token.address,
+                                    token.tokenId,
+                                    amount
+                                )
+    
+                                await updateUserTokenEntry(
+                                    user.userId,
+                                    token.address,
+                                    token.tokenId,
+                                    entry
+                                )
+    
+                                await updateUserTokenFlag(
+                                    user.userId,
+                                    token.address,
+                                    token.tokenId,
+                                    "Bought"
+                                )
+    
+                                await updateUserDailyLimit(user.userId, user.buy_amount)
+                            }
+                        })
+                    } catch (err) {
+                        console.log(err)
+    
+                        await updateUserTokenBuyRetries(
+                            user.userId,
+                            token.address,
+                            token.tokenId,
+                        )
                     }
-                })
-            } catch (err) {
-                console.log(err)
-                if(element.retries <= 5) {
-                    await updateSellEntries(element.userId)
+                }
+            })
+        }
+    })
+}
+
+export const runSells = async () => {
+    const users = await getUsers()
+    console.log(users)
+
+    users.forEach(async user => {
+        const tokens = user.tokens.filter(token => token.flag == "Bought")
+        console.log(tokens)
+
+        tokens.forEach(async token => {
+            if(token.sell_retries <= 5) {
+                const _token = new ethers.Contract(
+                    token.address,
+                    PAIR_ERC20_ABI.abi,
+                    getProvider()
+                )
+
+                const timestamp = await getTimestamp()
+                const time_diff = (timestamp - token.timestamp) / 60
+                console.log(timestamp, token.timestamp, time_diff)
+
+                const [amount0In, amount1Out] = await getAmountsOut(token.amount, token.address)
+                const exit = Number(amount0In) / Number(amount1Out)
+                const Xs = calculateXs(token.entry, exit)
+                console.log(time_diff >= user.stop_loss, Xs >= user.take_profit)
+
+                if(time_diff >= user.stop_loss || Xs >= user.take_profit) {
+                    try {
+                        await sellToken(
+                            user.wallet_sk,
+                            token.address,
+                            user.buy_amount,
+                            user.wallet_pk
+                        )
+
+                        _token.on("Transfer", async (from, to, value, e) => {
+                            if(to == user.wallet_pk) {
+                                console.log(from, to, value)
+                                if(exit > token.entry) {
+                                    const profit = Number(ethers.formatEther(amount1Out)) - user.buy_amount
                 
-                    await updateUserTokenFlag(
-                        element.userId,
-                        element.token,
-                        element.tokenId,
-                        "Pending Sell"
-                    )
-                } else {
-                    await deleteSellQueue(element.userId)
+                                    await updateUserTokenProfit(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        profit
+                                    )
+                
+                                    await updateUserTokenTP(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        exit
+                                    )
+                
+                                    await updateUserTokenXs(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        Xs
+                                    )
+                                } else if(exit < element.entry) {
+                                    const loss = element.buy_amount - Number(ethers.formatEther(amount1Out))
+                
+                                    await updateUserTokenLoss(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        loss
+                                    )
+                
+                                    await updateUserTokenSL(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        exit
+                                    )
+                
+                                    await updateUserTokenXs(
+                                        token.userId,
+                                        token.address,
+                                        token.tokenId,
+                                        Xs
+                                    )
+                                }
+                
+                                await updateUserTokenFlag(
+                                    token.userId,
+                                    token.address,
+                                    token.tokenId,
+                                    "Sold"
+                                )   
+                            }
+                        })
+                    } catch (err) {
+                        console.log(err)
+
+                        await updateUserTokenSellRetries(
+                            token.userId,
+                            token.address,
+                            token.tokenId,
+                        )
+                    }
                 }
             }
-        }
+        })
     })
 }
 
@@ -331,85 +368,7 @@ export const watchPairAddLiquidity = async (pairAddress, token0, token1) => {
 
     pair.on("Mint", async (sender, amount0, amount1, e) => {
         console.log(sender, amount0, amount1)
-        const users = await getUsers()
-        const _users = users.filter(user => user.buying == "Enabled")
-        console.log(_users)
-        
-        const [amount0In, amount1Out] = await getAmountsOut(1, token)
-        console.log(amount0In, amount1Out)
-        const x = amount1Out <= 0 || amount1Out >= Number.MAX_SAFE_INTEGER
 
-        if(true) {
-            const _token = new ethers.Contract(
-                token,
-                PAIR_ERC20_ABI.abi,
-                getProvider()
-            )
-
-            const timestamp = await getTimestamp()
-            const tokenId = await getID(pairAddress)
-
-            _users.forEach(async user => {
-                try {
-                    const tokenExist = user.tokens.filter(_token => _token.address == token)
-                    console.log(tokenExist)
-
-                    const balance = await getProvider().getBalance(user.wallet_pk)
-                    console.log(ethers.formatEther(balance))
-
-                    if(Number(ethers.formatEther(balance)) >= user.buy_amount && tokenExist.length <= 0 && user.daily_limit > 0) {
-                        await buyToken(
-                            user.wallet_sk,
-                            token,
-                            user.buy_amount,
-                            user.wallet_pk
-                        )
-
-                        _token.on("Transfer", async (from, to, value, e) => {
-                            if(to == user.wallet_pk) {
-                                console.log(from, to, value)
-                                const amount = await decimalFormatting(token, value)
-                                const entry = amount / user.buy_amount
-                                console.log(entry, amount, timestamp)
-
-                                await approveSwap(
-                                    token,
-                                    user.wallet_sk,
-                                    PANCAKESWAP_ROUTER02_MAINNET,
-                                    amount
-                                )
-
-                                await updateUserTokens(user.userId, tokenId, token, user.buy_amount, amount, entry, "Bought", timestamp)
-
-                                await updateUserDailyLimit(user.userId, user.buy_amount)
-
-                                await addToSellQueue(user.userId, token, tokenId, user.buy_amount, amount, entry, 0, timestamp)
-                            }
-                        })
-                    }
-                } catch (err) {
-                    console.log(err)
-
-                    await updateUserTokens(
-                        user.userId,
-                        tokenId,
-                        token,
-                        user.buy_amount,
-                        0,
-                        0,
-                        "Pending Buy",
-                        timestamp
-                    )
-
-                    await addToBuyQueue(
-                        user.userId,
-                        token,
-                        tokenId,
-                        user.buy_amount,
-                        0
-                    )
-                } 
-            })
-        }
+        await runBuys("b", token, pairAddress)
     })
 }

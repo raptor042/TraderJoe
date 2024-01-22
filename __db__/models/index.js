@@ -16,8 +16,10 @@ const UserSchema = new Schema({
             profit : { type : Number, default : 0 },
             loss : { type : Number, default : 0 },
             Xs : { type : Number, default : 0 },
-            flag : { type : String, enum : ["Bought", "Sold", "Pending Buy", "Pending Sell"] },
-            timestamp : Number
+            flag : { type : String, enum : ["Bought", "Sold", "Pending Buy"] },
+            timestamp : Number,
+            buy_retries : { type : Number, default : 0 },
+            sell_retries : { type : Number, default : 0 }
         }
     ],
     buy_limit : { type : Number, default : 0 },
@@ -28,27 +30,4 @@ const UserSchema = new Schema({
     buying : { type : String, enum : ["Enabled", "Disabled" ], default : "Enabled" }
 })
 
-const BuyQueueSchema = new Schema({
-    userId : { type : Number, required : true },
-    token : { type : String, required : true },
-    tokenId : { type : String, required : true },
-    buy_amount : { type : Number, required : true },
-    retries : { type : Number, required : true }
-})
-
-const SellQueueSchema = new Schema({
-    userId : { type : Number, required : true },
-    token : { type : String, required : true },
-    tokenId : { type : String, required : true },
-    buy_amount : { type : Number, required : true },
-    amount : { type : Number, required : true },
-    entry : { type : Number, required : true },
-    retries : { type : Number, required : true },
-    timestamp : { type : Number, required : true }
-})
-
 export const UserModel = model("User", UserSchema)
-
-export const BuyQueueModel = model("BuyQueue", BuyQueueSchema)
-
-export const SellQueueModel = model("SellQueue", SellQueueSchema)

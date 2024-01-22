@@ -1,6 +1,6 @@
 import { Telegraf, Markup } from "telegraf"
 import { config } from "dotenv"
-import { get24HReport, resetBuyLimit, runBuyQueue, runSellQueue, userExists, watchPairCreation } from "./utils/index.js"
+import { get24HReport, resetBuyLimit, runBuys, runSells, userExists, watchPairCreation } from "./utils/index.js"
 import { addUser, connectDB, getUser, updateUserBuyAmount, updateUserBuyLimit, updateUserBuying, updateUserSL, updateUserTP } from "./__db__/index.js"
 import { createWallet } from "./__web3__/index.js"
 import { getProvider } from "./__web3__/init.js"
@@ -289,10 +289,10 @@ bot.command("daily_report", async ctx => {
 connectDB()
 
 setInterval(() => {
-    runSellQueue()
+    runSells()
 
     setTimeout(() => {
-        runBuyQueue()
+        runBuys("pb")
     }, 1000*60*1)
 }, 1000*60*2);
 
