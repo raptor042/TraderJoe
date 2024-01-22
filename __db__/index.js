@@ -1,5 +1,5 @@
 import { connect } from "mongoose"
-import { BuyQueueModel, SellQueueModel, UserModel } from "./models/index.js"
+import { UserModel } from "./models/index.js"
 import { config } from "dotenv"
 
 config()
