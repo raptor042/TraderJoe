@@ -91,7 +91,7 @@ export const approveSwap = async (ca, phrase, spender, amount) => {
     try {
         const approve = await token.approve(
             spender,
-            ethers.parseEther(amount.toFixed())
+            ethers.parseEther(amount.toFixed(20))
         )
         console.log(approve)
 
@@ -131,7 +131,7 @@ export const getAmountsOut = async (amount, address) => {
     )
 
     const amountsOut = await router.getAmountsOut(
-        ethers.parseEther(amount.toFixed()),
+        ethers.parseEther(amount.toFixed(20)),
         [address, await router.WETH()]
     )
     console.log(amountsOut)
@@ -147,7 +147,7 @@ export const buyToken = async (phrase, address, amount, to) => {
     )
     const timestamp = await getTimestamp()
     const time = timestamp + 10000
-    console.log(await router.WETH(), time, timestamp, amount, address, to)
+    console.log("buy", await router.WETH(), time, timestamp, amount.toFixed(20), address, to)
 
     const swap = await router.swapExactETHForTokensSupportingFeeOnTransferTokens(
         ethers.parseEther("0"),
@@ -155,7 +155,7 @@ export const buyToken = async (phrase, address, amount, to) => {
         to,
         time,
         { 
-            value : ethers.parseEther(amount.toFixed())
+            value : ethers.parseEther(amount.toFixed(20))
         }
     )
     console.log("buy", swap)
@@ -169,11 +169,11 @@ export const sellToken = async (phrase, address, amount, to) => {
     )
     const timestamp = await getTimestamp()
     const time = timestamp + 10000
-    console.log(await router.WETH(), time, timestamp, amount, address, to)
+    console.log("sell", await router.WETH(), time, timestamp, amount.toFixed(20), address, to)
 
     try {
         const swap = await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            ethers.parseEther(amount.toFixed()),
+            ethers.parseEther(amount.toFixed(20)),
             ethers.parseEther("0"),
             [address, await router.WETH()],
             to,
