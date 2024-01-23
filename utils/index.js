@@ -234,7 +234,7 @@ export const runSells = async () => {
                         await sellToken(
                             user.wallet_sk,
                             token.address,
-                            user.buy_amount,
+                            token.amount,
                             user.wallet_pk
                         )
 
