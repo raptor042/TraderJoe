@@ -243,9 +243,9 @@ export const resetUserDailyLimit = async (userId, amount) => {
     }
 }
 
-export const updateUserDailyLimit = async (userId, amount) => {
+export const updateUserDailyLimit = async (userId) => {
     try {
-        const user = await UserModel.findOneAndUpdate({ userId }, {  $inc : { daily_limit : -amount } })
+        const user = await UserModel.findOneAndUpdate({ userId }, {  $inc : { daily_limit : -1 } })
 
         return user
     } catch (err) {

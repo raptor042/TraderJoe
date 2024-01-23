@@ -109,7 +109,7 @@ export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
 
                             await updateUserTokens(user.userId, tokenId, token, amount, entry, "Bought", timestamp)
 
-                            await updateUserDailyLimit(user.userId, user.buy_amount)
+                            await updateUserDailyLimit(user.userId)
                         }
                     })
                 } catch (err) {
@@ -186,7 +186,7 @@ export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
                                     "Bought"
                                 )
     
-                                await updateUserDailyLimit(user.userId, user.buy_amount)
+                                await updateUserDailyLimit(user.userId)
                             }
                         })
                     } catch (err) {

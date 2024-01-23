@@ -77,7 +77,7 @@ bot.command("daily_limit", async ctx => {
                     const _user = await resetBuyLimit(ctx.message.from.id, Number(args[0]))
                     console.log(user, args)
 
-                    await ctx.replyWithHTML(`<b>🏪 You have successfully set your Buy Limit to ${args[0]} BNB every 24H</b>`)
+                    await ctx.replyWithHTML(`<b>🏪 You have successfully set your Buy Limit to ${args[0]} buys every 24H</b>`)
                 } else {
                     await ctx.replyWithHTML("<b>🚨 Use the command appropriately.</b>\n\n<i>Example:\n/daily_limit 'Amount'</i>")
                 }
