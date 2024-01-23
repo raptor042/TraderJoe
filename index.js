@@ -250,8 +250,9 @@ bot.command("daily_report", async ctx => {
             const user_exists = await userExists(ctx.message.from.id)
 
             if(user_exists) {
-               const { no_of_buys, no_of_sells, tokens } = await get24HReport(ctx.message.from.id)
-                console.log(no_of_buys, no_of_sells)
+                const user = await getUser(ctx.message.from.id)
+                const { no_of_buys, no_of_sells, tokens } = await get24HReport(ctx.message.from.id)
+                console.log(no_of_buys, no_of_sells, user)
 
                 let pnl = 0
                 
@@ -264,7 +265,7 @@ bot.command("daily_report", async ctx => {
                         pnl += token.loss
                     }
 
-                    replyMsg += `<b>📊 ${token.tokenId.split("-")[0]} : </b><i>${token.buy_amount} BNB</i>\n`
+                    replyMsg += `<b>📊 ${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]} : </b><i>${token.amount} ${token.tokenId.split("-")[0]} / ${user.buy_amount} BNB</i>\n`
                 })
 
                 if(pnl > 0) {
