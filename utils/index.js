@@ -55,7 +55,7 @@ export const resetBuyLimit = async () => {
 const calculateXs = (price0, price1) => {
     const diff = price1 - price0
     const Xs = diff / price0
-    console.log(diff, Xs)
+    console.log(price0, price1, diff, Xs)
 
     return Xs
 }
@@ -239,7 +239,7 @@ export const runSells = async () => {
                         )
 
                         _token.on("Transfer", async (from, to, value, e) => {
-                            if(to == user.wallet_pk) {
+                            if(from == user.wallet_pk) {
                                 console.log(from, to, value)
                                 if(exit > token.entry) {
                                     const profit = Number(ethers.formatEther(amount1Out)) - user.buy_amount

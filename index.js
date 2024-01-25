@@ -294,8 +294,8 @@ setInterval(() => {
 
     setTimeout(() => {
         runBuys("pb")
-    }, 1000*60*1)
-}, 1000*60*2);
+    }, 1000*15)
+}, 1000*30);
 
 setInterval(() => {
     resetBuyLimit()
