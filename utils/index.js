@@ -243,6 +243,7 @@ export const runSells = async () => {
                                 console.log(from, to, value)
                                 if(exit > token.entry) {
                                     const profit = Number(ethers.formatEther(amount1Out)) - user.buy_amount
+                                    console.log("profit", profit)
                 
                                     await updateUserTokenProfit(
                                         token.userId,
@@ -266,6 +267,7 @@ export const runSells = async () => {
                                     )
                                 } else if(exit < element.entry) {
                                     const loss = element.buy_amount - Number(ethers.formatEther(amount1Out))
+                                    console.log("loss", loss)
                 
                                     await updateUserTokenLoss(
                                         token.userId,
@@ -303,7 +305,7 @@ export const runSells = async () => {
                         await updateUserTokenSellRetries(
                             token.userId,
                             token.address,
-                            token.tokenId,
+                            token.tokenId
                         )
                     }
                 }
