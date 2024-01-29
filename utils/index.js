@@ -265,8 +265,8 @@ export const runSells = async () => {
                                         token.tokenId,
                                         Xs
                                     )
-                                } else if(exit < element.entry) {
-                                    const loss = element.buy_amount - Number(ethers.formatEther(amount1Out))
+                                } else if(exit < token.entry) {
+                                    const loss = user.buy_amount - Number(ethers.formatEther(amount1Out))
                                     console.log("loss", loss)
                 
                                     await updateUserTokenLoss(
