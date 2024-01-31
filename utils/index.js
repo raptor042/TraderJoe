@@ -5,13 +5,11 @@ import {
     resetUserDailyLimit, 
     updateUserDailyLimit, 
     updateUserTokenAmount, 
-    updateUserTokenBuyRetries, 
     updateUserTokenEntry, 
     updateUserTokenFlag, 
     updateUserTokenLoss, 
     updateUserTokenProfit, 
     updateUserTokenSL, 
-    updateUserTokenSellRetries, 
     updateUserTokenTP, 
     updateUserTokenXs, 
     updateUserTokens
@@ -60,13 +58,13 @@ const calculateXs = (price0, price1) => {
     return Xs
 }
 
-export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
+export const runBuys = async (token, pairAddress) => {
     const users = await getUsers()
     const _users = users.filter(user => user.buying == "Enabled")
     console.log(_users)
 
     _users.forEach(async user => {
-        if(flag == "b" && token != "nil" && pairAddress != "nil") {
+        if(true) {
             const _token = new ethers.Contract(
                 token,
                 PAIR_ERC20_ABI.abi,
@@ -107,7 +105,15 @@ export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
                                 amount
                             )
 
-                            await updateUserTokens(user.userId, tokenId, token, amount, entry, "Bought", timestamp)
+                            await updateUserTokens(
+                                user.userId, 
+                                tokenId, 
+                                token, 
+                                amount, 
+                                entry, 
+                                "Bought", 
+                                timestamp
+                            )
 
                             await updateUserDailyLimit(user.userId)
                         }
@@ -121,85 +127,11 @@ export const runBuys = async (flag, token = "nil", pairAddress = "nil") => {
                         token,
                         0,
                         0,
-                        "Pending Buy",
+                        "Failed to Buy",
                         timestamp
                     )
                 }
             }
-        } else if(flag == "pb" && token == "nil" && pairAddress == "nil") {
-            console.log("pb")
-
-            const tokens = user.tokens.filter(token => token.flag == "Pending Buy")
-            console.log(tokens)
-
-            const balance = await getProvider().getBalance(user.wallet_pk)
-            console.log(ethers.formatEther(balance))
-
-            tokens.forEach(async token => {
-                const _token = new ethers.Contract(
-                    token.address,
-                    PAIR_ERC20_ABI.abi,
-                    getProvider()
-                )
-
-                if(Number(ethers.formatEther(balance)) >= user.buy_amount && user.daily_limit > 0 && token.buy_retries <= 5) {
-                    try {
-                        await buyToken(
-                            user.wallet_sk,
-                            token.address,
-                            user.buy_amount,
-                            user.wallet_pk
-                        )
-    
-                        _token.on("Transfer", async (from, to, value, e) => {
-                            if(to == user.wallet_pk) {
-                                console.log(from, to, value)
-                                const amount = await decimalFormatting(token.address, value)
-                                const entry = amount / user.buy_amount
-                                console.log(entry, amount)
-    
-                                await approveSwap(
-                                    token.address,
-                                    user.wallet_sk,
-                                    PANCAKESWAP_ROUTER02_MAINNET,
-                                    amount
-                                )
-    
-                                await updateUserTokenAmount(
-                                    user.userId,
-                                    token.address,
-                                    token.tokenId,
-                                    amount
-                                )
-    
-                                await updateUserTokenEntry(
-                                    user.userId,
-                                    token.address,
-                                    token.tokenId,
-                                    entry
-                                )
-    
-                                await updateUserTokenFlag(
-                                    user.userId,
-                                    token.address,
-                                    token.tokenId,
-                                    "Bought"
-                                )
-    
-                                await updateUserDailyLimit(user.userId)
-                            }
-                        })
-                    } catch (err) {
-                        console.log(err)
-    
-                        await updateUserTokenBuyRetries(
-                            user.userId,
-                            token.address,
-                            token.tokenId,
-                        )
-                    }
-                }
-            })
         }
     })
 }
@@ -213,7 +145,7 @@ export const runSells = async () => {
         console.log(tokens)
 
         tokens.forEach(async token => {
-            if(token.sell_retries <= 5) {
+            if(true) {
                 const _token = new ethers.Contract(
                     token.address,
                     PAIR_ERC20_ABI.abi,
@@ -296,16 +228,17 @@ export const runSells = async () => {
                                     token.address,
                                     token.tokenId,
                                     "Sold"
-                                )   
+                                )
                             }
                         })
                     } catch (err) {
                         console.log(err)
 
-                        await updateUserTokenSellRetries(
+                        await updateUserTokenFlag(
                             token.userId,
                             token.address,
-                            token.tokenId
+                            token.tokenId,
+                            "Failed to Sell"
                         )
                     }
                 }
@@ -320,6 +253,8 @@ export const get24HReport = async userId => {
 
     let no_of_buys = 0
     let no_of_sells = 0
+    let no_of_failed_buys = 0
+    let no_of_failed_sells = 0
     let tokens = []
 
     const timestamp = await getTimestamp()
@@ -332,16 +267,21 @@ export const get24HReport = async userId => {
         if(time_diff <= 1) {
             if(token.flag == "Bought") {
                 no_of_buys++
-                tokens.push(token)
             } else if(token.flag == "Sold") {
                 no_of_buys++
                 no_of_sells++
-                tokens.push(token)
+            } else if(token.flag == "Failed to Buy") {
+                no_of_failed_buys++
+            } else if(token.flag == "Failed to Sell") {
+                no_of_buys++
+                no_of_failed_sells++
             }
+
+            tokens.push(token)
         }
     })
 
-    return { no_of_buys, no_of_sells, tokens }
+    return { no_of_buys, no_of_sells, no_of_failed_buys, no_of_failed_sells, tokens }
 }
 
 export const watchPairCreation = async () => {
@@ -371,6 +311,6 @@ export const watchPairAddLiquidity = async (pairAddress, token0, token1) => {
     pair.on("Mint", async (sender, amount0, amount1, e) => {
         console.log(sender, amount0, amount1)
 
-        await runBuys("b", token, pairAddress)
+        await runBuys(token, pairAddress)
     })
 }

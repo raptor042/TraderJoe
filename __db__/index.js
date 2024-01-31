@@ -177,32 +177,6 @@ export const updateUserTokenFlag = async (userId, address, tokenId, flag) => {
     }
 }
 
-export const updateUserTokenBuyRetries = async (userId, address, tokenId) => {
-    try {
-        const user = await UserModel.findOneAndUpdate(
-            { userId, tokens : { $elemMatch : { address, tokenId } } },
-            { $inc : { "tokens.$.buy_retries" : 1 } }
-        )
-
-        return user
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-export const updateUserTokenSellRetries = async (userId, address, tokenId) => {
-    try {
-        const user = await UserModel.findOneAndUpdate(
-            { userId, tokens : { $elemMatch : { address, tokenId } } },
-            { $inc : { "tokens.$.sell_retries" : 1 } }
-        )
-
-        return user
-    } catch (err) {
-        console.log(err)
-    }
-}
-
 export const updateUserBuyLimit = async (userId, amount) => {
     try {
         const user = await UserModel.findOneAndUpdate({ userId }, {  $set : { buy_limit : amount } })

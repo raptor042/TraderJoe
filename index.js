@@ -259,13 +259,25 @@ bot.command("daily_report", async ctx => {
                 let replyMsg = `<b>🗓 Here is your daily report:</b>\n\n<i>📉 No of buys : ${no_of_buys}</i>\n<i>📈 No of sells : ${no_of_sells}</i>\n\n`
 
                 tokens.forEach(token => {
-                    if(token.profit != 0) {
+                    if(token.profit > 0) {
                         pnl += token.profit
-                    } else if(token.loss != 0) {
+                    } else if(token.loss > 0) {
                         pnl += token.loss
                     }
 
-                    replyMsg += `<b>📊 ${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]} : </b><i>${token.amount} ${token.tokenId.split("-")[0]} / ${user.buy_amount} BNB</i>\n`
+                    if(token.flag == "Bought") {
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n`
+                    } else if(token.flag == "Sold") {
+                        if(token.profit > 0) {
+                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📉 Profit : </b><i>${token.profit}</i>\n`
+                        } else if(token.loss > 0) {
+                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📈 Loss : </b><i>${token.loss}</i>\n`
+                        }
+                    } else if(token.flag == "Failed to Buy") {
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Buy</i>\n`
+                    } else if(token.flag == "Failed to Sell") {
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Sell</i>\n`
+                    }
                 })
 
                 if(pnl > 0) {

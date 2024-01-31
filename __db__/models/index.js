@@ -16,10 +16,8 @@ const UserSchema = new Schema({
             profit : { type : Number, default : 0 },
             loss : { type : Number, default : 0 },
             Xs : { type : Number, default : 0 },
-            flag : { type : String, enum : ["Bought", "Sold", "Pending Buy"] },
-            timestamp : Number,
-            buy_retries : { type : Number, default : 0 },
-            sell_retries : { type : Number, default : 0 }
+            flag : { type : String, enum : ["Bought", "Sold", "Failed to Buy", "Failed to Sell"] },
+            timestamp : Number
         }
     ],
     buy_limit : { type : Number, default : 0 },
