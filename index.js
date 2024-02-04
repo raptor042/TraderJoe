@@ -251,12 +251,12 @@ bot.command("daily_report", async ctx => {
 
             if(user_exists) {
                 const user = await getUser(ctx.message.from.id)
-                const { no_of_buys, no_of_sells, tokens } = await get24HReport(ctx.message.from.id)
-                console.log(no_of_buys, no_of_sells, user)
+                const { no_of_buys, no_of_sells, no_of_failed_buys, no_of_failed_sells, tokens } = await get24HReport(ctx.message.from.id)
+                console.log(no_of_buys, no_of_sells, no_of_failed_buys, no_of_failed_sells, user)
 
                 let pnl = 0
                 
-                let replyMsg = `<b>🗓 Here is your daily report:</b>\n\n<i>📉 No of buys : ${no_of_buys}</i>\n<i>📈 No of sells : ${no_of_sells}</i>\n\n`
+                let replyMsg = `<b>🗓 Here is your daily report:</b>\n\n<i>📉 No of buys : ${no_of_buys}</i>\n<i>📈 No of sells : ${no_of_sells}</i>\n<i>📉 No of failed buys : ${no_of_failed_buys}</i>\n<i>📈 No of failed sells : ${no_of_failed_sells}</i>\n\n`
 
                 tokens.forEach(token => {
                     if(token.profit > 0) {
@@ -266,24 +266,26 @@ bot.command("daily_report", async ctx => {
                     }
 
                     if(token.flag == "Bought") {
-                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n`
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n\n`
                     } else if(token.flag == "Sold") {
                         if(token.profit > 0) {
-                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📉 Profit : </b><i>${token.profit}</i>\n`
+                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📉 Profit : </b><i>${token.profit}</i>\n\n`
                         } else if(token.loss > 0) {
-                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📈 Loss : </b><i>${token.loss}</i>\n`
+                            replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏴 Flag : </b><i>Bought</i>\n<b>💰 Amount : </b><i>${token.amount}</i>\n<b>📈 Loss : </b><i>${token.loss}</i>\n\n`
                         }
                     } else if(token.flag == "Failed to Buy") {
-                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Buy</i>\n`
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Buy</i>\n\n`
                     } else if(token.flag == "Failed to Sell") {
-                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Sell</i>\n`
+                        replyMsg += `<b>💎 Pair : </b><i>${token.tokenId.split("-")[0]}/${token.tokenId.split("-")[1]}</i>\n<b>🏳️ Flag : </b><i>Cannot Sell</i>\n\n`
                     }
                 })
 
                 if(pnl > 0) {
-                    replyMsg += `\n<b>📉 Profit : </b><i>${pnl}</i>`
+                    replyMsg += `<b>📉 Profit : </b><i>${pnl}</i>`
                 } else if(pnl < 0) {
-                    replyMsg += `\n<b>📈 Loss : </b><i>${pnl}</i>`
+                    replyMsg += `<b>📈 Loss : </b><i>${pnl}</i>`
+                } else if(pnl == 0) {
+                    replyMsg += `<b>📈 PNL : </b><i>${pnl}</i>`
                 }
 
                 await ctx.replyWithHTML(replyMsg)
