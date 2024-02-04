@@ -303,10 +303,6 @@ connectDB()
 
 setInterval(() => {
     runSells()
-
-    setTimeout(() => {
-        runBuys("pb")
-    }, 1000*15)
 }, 1000*30);
 
 setInterval(() => {
