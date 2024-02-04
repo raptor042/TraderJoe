@@ -172,7 +172,7 @@ export const runSells = async () => {
 
                         _token.on("Transfer", async (from, to, value, e) => {
                             if(from == user.wallet_pk) {
-                                console.log(from, to, value)
+                                console.log("Sold", from, to, value)
                                 if(exit > token.entry) {
                                     const profit = Number(ethers.formatEther(amount1Out)) - user.buy_amount
                                     console.log("profit", profit)
