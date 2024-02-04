@@ -171,16 +171,12 @@ export const sellToken = async (phrase, address, amount, to) => {
     const time = timestamp + 10000
     console.log("sell", await router.WETH(), time, timestamp, amount, address, to)
 
-    try {
-        const swap = await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            ethers.parseEther(`${amount}`),
-            ethers.parseEther("0"),
-            [address, await router.WETH()],
-            to,
-            time
-        )
-        console.log("sell", swap)
-    } catch (err) {
-        console.log(err)
-    }
+    const swap = await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        ethers.parseEther(`${amount}`),
+        ethers.parseEther("0"),
+        [address, await router.WETH()],
+        to,
+        time
+    )
+    console.log("sell", swap)
 }

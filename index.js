@@ -303,7 +303,7 @@ connectDB()
 
 setInterval(() => {
     runSells()
-}, 1000*30);
+}, 1000*60);
 
 setInterval(() => {
     resetBuyLimit()
@@ -311,7 +311,7 @@ setInterval(() => {
 
 setTimeout(() => {
     watchPairCreation()
-}, 1000*60)
+}, 1000*30)
 
 bot.launch()
 

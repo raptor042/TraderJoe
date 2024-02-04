@@ -138,9 +138,10 @@ export const runBuys = async (token, pairAddress) => {
 
 export const runSells = async () => {
     const users = await getUsers()
-    console.log(users)
+    const _users = users.filter(user => user.buying == "Enabled")
+    console.log(_users)
 
-    users.forEach(async user => {
+    _users.forEach(async user => {
         const tokens = user.tokens.filter(token => token.flag == "Bought")
         console.log(tokens)
 
@@ -178,21 +179,21 @@ export const runSells = async () => {
                                     console.log("profit", profit)
                 
                                     await updateUserTokenProfit(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         profit
                                     )
                 
                                     await updateUserTokenTP(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         exit
                                     )
                 
                                     await updateUserTokenXs(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         Xs
@@ -202,21 +203,21 @@ export const runSells = async () => {
                                     console.log("loss", loss)
                 
                                     await updateUserTokenLoss(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         loss
                                     )
                 
                                     await updateUserTokenSL(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         exit
                                     )
                 
                                     await updateUserTokenXs(
-                                        token.userId,
+                                        user.userId,
                                         token.address,
                                         token.tokenId,
                                         Xs
@@ -224,7 +225,7 @@ export const runSells = async () => {
                                 }
                 
                                 await updateUserTokenFlag(
-                                    token.userId,
+                                    user.userId,
                                     token.address,
                                     token.tokenId,
                                     "Sold"
@@ -232,10 +233,10 @@ export const runSells = async () => {
                             }
                         })
                     } catch (err) {
-                        console.log(err)
+                        console.log("Selling Failed", err)
 
                         await updateUserTokenFlag(
-                            token.userId,
+                            user.userId,
                             token.address,
                             token.tokenId,
                             "Failed to Sell"

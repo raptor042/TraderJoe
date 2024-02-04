@@ -100,7 +100,6 @@ export const updateUserTokenEntry = async (userId, address, tokenId, entry) => {
 }
 
 export const updateUserTokenTP = async (userId, address, tokenId, tp) => {
-    console.log("Update token tp")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
@@ -114,7 +113,6 @@ export const updateUserTokenTP = async (userId, address, tokenId, tp) => {
 }
 
 export const updateUserTokenSL = async (userId, address, tokenId, sl) => {
-    console.log("Update token sl")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
@@ -128,7 +126,6 @@ export const updateUserTokenSL = async (userId, address, tokenId, sl) => {
 }
 
 export const updateUserTokenProfit = async (userId, address, tokenId, profit) => {
-    console.log("Update token profit")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
@@ -142,7 +139,6 @@ export const updateUserTokenProfit = async (userId, address, tokenId, profit) =>
 }
 
 export const updateUserTokenLoss = async (userId, address, tokenId, loss) => {
-    console.log("Update token loss")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
@@ -156,7 +152,6 @@ export const updateUserTokenLoss = async (userId, address, tokenId, loss) => {
 }
 
 export const updateUserTokenXs = async (userId, address, tokenId, Xs) => {
-    console.log("Update token Xs")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
@@ -170,7 +165,6 @@ export const updateUserTokenXs = async (userId, address, tokenId, Xs) => {
 }
 
 export const updateUserTokenFlag = async (userId, address, tokenId, flag) => {
-    console.log("Update token flag")
     try {
         const user = await UserModel.findOneAndUpdate(
             { userId, tokens : { $elemMatch : { address, tokenId } } },
